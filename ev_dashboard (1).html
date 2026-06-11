@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EV Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── VARIABLES ── */
+    :root {
+      --bg:        #0a0c10;
+      --bg2:       #111318;
+      --bg3:       #181c24;
+      --border:    #1f2530;
+      --accent:    #00e5a0;
+      --accent2:   #0096ff;
+      --warn:      #ffb020;
+      --danger:    #ff4545;
+      --text:      #e8edf5;
+      --text2:     #8a95a8;
+      --text3:     #4a5568;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Rajdhani', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .topbar-title { font-size: 16px; font-weight: 700; letter-spacing: .05em; }
+    .topbar-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+    .status-badge {
+      font-size: 11px; font-weight: 600; padding: 4px 10px;
+      border-radius: 20px; letter-spacing: .04em;
+      background: rgba(0,229,160,.12); color: var(--accent);
+      border: 1px solid rgba(0,229,160,.25);
+    }
+    .status-badge.warn { background: rgba(255,176,32,.12); color: var(--warn); border-color: rgba(255,176,32,.25); }
+    .status-badge.danger { background: rgba(255,69,69,.12); color: var(--danger); border-color: rgba(255,69,69,.25); }
+
+    /* ── GAUGE GRID ── */
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .gauge-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      position: relative; overflow: hidden;
+    }
+    .gauge-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: var(--card-color, var(--accent));
+      opacity: .6;
+    }
+    .gauge-label {
+      font-size: 10px; font-weight: 600;
+      color: var(--text2); letter-spacing: .08em; text-transform: uppercase;
+    }
+    .gauge-num {
+      font-size: 28px; font-weight: 700;
+      font-family: var(--mono);
+      color: var(--card-color, var(--accent));
+      line-height: 1;
+    }
+    .gauge-unit { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+
+    /* SVG arc */
+    .arc-svg { display: block; }
+    .arc-track { fill: none; stroke: var(--bg3); stroke-width: 5; stroke-linecap: round; }
+    .arc-fill  { fill: none; stroke: var(--card-color, var(--accent)); stroke-width: 5; stroke-linecap: round;
+                 transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1); filter: drop-shadow(0 0 4px var(--card-color, var(--accent))); }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 14px;
+    }
+    .stat-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+    }
+    .stat-label { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+    .stat-value span { font-size: 13px; color: var(--text3); font-weight: 400; }
+    .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+    /* bar */
+    .mini-bar { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+    /* ── ALERTS ── */
+    .alerts { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .alert {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      border: 1px solid transparent;
+    }
+    .alert.ok     { background: rgba(0,229,160,.07);  color: var(--accent); border-color: rgba(0,229,160,.15); }
+    .alert.warn   { background: rgba(255,176,32,.07); color: var(--warn);   border-color: rgba(255,176,32,.15); }
+    .alert.danger { background: rgba(255,69,69,.07);  color: var(--danger); border-color: rgba(255,69,69,.15); }
+    .alert-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+    /* ── SIMULATOR ── */
+    .sim-section {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 14px;
+    }
+
+    .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .sim-row:last-child { margin-bottom: 0; }
+    .sim-lbl { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; font-family: var(--mono); }
+    .sim-slider {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 3px; border-radius: 2px; outline: none; cursor: pointer;
+      background: var(--bg3);
+    }
+    .sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 6px var(--accent); cursor: pointer;
+    }
+    .sim-val { font-size: 12px; font-family: var(--mono); color: var(--text); width: 38px; text-align: right; }
+
+
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="live-dot"></div>
+      <div>
+        <div class="topbar-title">EV MONITOR</div>
+        <div class="topbar-sub" id="last-update">last update: 0s ago</div>
+      </div>
+    </div>
+    <div class="status-badge" id="status-badge">NORMAL</div>
+  </div>
+
+  <!-- GAUGE GRID -->
+  <div class="gauge-grid">
+
+    <!-- Battery -->
+    <div class="gauge-card" style="--card-color: #00e5a0">
+      <div class="gauge-label">Battery</div>
+      <svg class="arc-svg" width="70" height="40" viewBox="0 0 70 40">
+        <path class="arc-track" d="M8,38 A30,30 0 0,1 62,38"/>
+        <path class="arc-fill" id="arc-batt" d="M8,38 A30,30 0 0,1 62,38"
+              stroke-dasharray="94.2" stroke-dashoffset="23.6"/>
+      </svg>
+      <div class="gauge-num" id="batt-num">75</div>
+      <div class="gauge-unit">%</div>
+    </div>
+
+    <!-- Speed -->
+    <div class="gauge-card" style="--card-color: #0096ff">
+      <div class="gauge-label">Speed</div>
+      <svg class="arc-svg" width="70" height="40" viewBox="0 0 70 40">
+        <path class="arc-track" d="M8,38 A30,30 0 0,1 62,38"/>
+        <path class="arc-fill" id="arc-speed" d="M8,38 A30,30 0 0,1 62,38"
+              stroke="var(--accent2)"
+              stroke-dasharray="94.2" stroke-dashoffset="47.1"/>
+      </svg>
+      <div class="gauge-num" id="speed-num" style="color:#0096ff">50</div>
+      <div class="gauge-unit">km/h</div>
+    </div>
+
+    <!-- Temp -->
+    <div class="gauge-card" style="--card-color: #ffb020">
+      <div class="gauge-label">Temp</div>
+      <svg class="arc-svg" width="70" height="40" viewBox="0 0 70 40">
+        <path class="arc-track" d="M8,38 A30,30 0 0,1 62,38"/>
+        <path class="arc-fill" id="arc-temp" d="M8,38 A30,30 0 0,1 62,38"
+              stroke="var(--warn)"
+              stroke-dasharray="94.2" stroke-dashoffset="56.5"/>
+      </svg>
+      <div class="gauge-num" id="temp-num" style="color:#ffb020">40</div>
+      <div class="gauge-unit">°C</div>
+    </div>
+
+  </div>
+
+  <!-- STAT GRID -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Voltage</div>
+      <div class="stat-value" id="volt-val">48.0 <span>V</span></div>
+      <div class="stat-sub">Nominal: 48V</div>
+      <div class="mini-bar"><div class="mini-bar-fill" id="volt-bar" style="width:60%;background:#00e5a0"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Current</div>
+      <div class="stat-value" id="curr-val">12.0 <span>A</span></div>
+      <div class="stat-sub">Draw from pack</div>
+      <div class="mini-bar"><div class="mini-bar-fill" id="curr-bar" style="width:40%;background:#0096ff"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Est. Range</div>
+      <div class="stat-value" id="range-val">60 <span>km</span></div>
+      <div class="stat-sub">At current speed</div>
+      <div class="mini-bar"><div class="mini-bar-fill" id="range-bar" style="width:75%;background:#00e5a0"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Uptime</div>
+      <div class="stat-value" id="uptime-val">00:00</div>
+      <div class="stat-sub">Session time</div>
+      <div class="mini-bar"><div class="mini-bar-fill" style="width:0%;background:#0096ff" id="uptime-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="alerts" id="alerts">
+    <div class="alert ok"><div class="alert-dot"></div> Battery level normal</div>
+    <div class="alert ok"><div class="alert-dot"></div> Motor temperature safe</div>
+    <div class="alert ok"><div class="alert-dot"></div> Voltage stable</div>
+  </div>
+
+  <!-- SIMULATOR (replace with fetch() in week 4) -->
+  <div class="sim-section">
+    <div class="sim-row">
+      <span class="sim-lbl">Battery %</span>
+      <input type="range" class="sim-slider" id="sl-batt" min="0" max="100" value="75">
+      <span class="sim-val" id="lbl-batt">75%</span>
+    </div>
+    <div class="sim-row">
+      <span class="sim-lbl">Speed km/h</span>
+      <input type="range" class="sim-slider" id="sl-speed" min="0" max="120" value="50">
+      <span class="sim-val" id="lbl-speed">50</span>
+    </div>
+    <div class="sim-row">
+      <span class="sim-lbl">Temp °C</span>
+      <input type="range" class="sim-slider" id="sl-temp" min="20" max="100" value="40">
+      <span class="sim-val" id="lbl-temp">40°</span>
+    </div>
+  </div>
+
+
+
+<script>
+  // ── ARC MATH ──
+  // Arc path length ≈ 94.2 (half circle r=30)
+  // offset = 94.2 - (pct/100 * 94.2)
+  function setArc(id, pct) {
+    const offset = 94.2 - (Math.min(Math.max(pct, 0), 100) / 100 * 94.2);
+    document.getElementById(id).style.strokeDashoffset = offset;
+  }
+
+  // ── UPTIME ──
+  let seconds = 0;
+  setInterval(() => {
+    seconds++;
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('uptime-val').textContent = m + ':' + s;
+    document.getElementById('uptime-bar').style.width = Math.min(seconds / 3600 * 100, 100) + '%';
+    document.getElementById('last-update').textContent = 'last update: 0s ago';
+  }, 1000);
+
+  // ── MAIN UPDATE FUNCTION ──
+  // In Week 4, you will replace the sliders with:
+  // setInterval(() => fetch('/data').then(r => r.json()).then(d => updateDash(d.batt, d.speed, d.temp)), 2000);
+  function updateDash(batt, speed, temp) {
+    // Gauges
+    setArc('arc-batt', batt);
+    setArc('arc-speed', speed / 120 * 100);
+    setArc('arc-temp', (temp - 20) / 80 * 100);
+
+    document.getElementById('batt-num').textContent = batt;
+    document.getElementById('speed-num').textContent = speed;
+    document.getElementById('temp-num').textContent = temp;
+
+    // Derived stats
+    const volt = (44 + batt * 0.08).toFixed(1);
+    const curr = speed > 80 ? (18 + Math.random()).toFixed(1) : (10 + speed * 0.04).toFixed(1);
+    const range = Math.round(batt * 0.8);
+
+    document.getElementById('volt-val').innerHTML = volt + ' <span>V</span>';
+    document.getElementById('curr-val').innerHTML = curr + ' <span>A</span>';
+    document.getElementById('range-val').innerHTML = range + ' <span>km</span>';
+
+    document.getElementById('volt-bar').style.width = (batt * 0.8) + '%';
+    document.getElementById('curr-bar').style.width = (speed / 120 * 100) + '%';
+    document.getElementById('range-bar').style.width = batt + '%';
+
+    // Alert logic — this is the if/else you'll build on
+    const alerts = [];
+    if (batt < 20)       alerts.push(['danger', 'Battery CRITICAL — charge now!']);
+    else if (batt < 35)  alerts.push(['warn',   'Battery low']);
+    else                 alerts.push(['ok',      'Battery level normal']);
+
+    if (temp > 70)       alerts.push(['danger', 'Motor OVERHEATING']);
+    else if (temp > 55)  alerts.push(['warn',   'Motor temp elevated']);
+    else                 alerts.push(['ok',      'Motor temperature safe']);
+
+    if (parseFloat(volt) > 54) alerts.push(['warn', 'Voltage high — check cells']);
+    else                       alerts.push(['ok',   'Voltage stable']);
+
+    document.getElementById('alerts').innerHTML = alerts
+      .map(([t, msg]) => `<div class="alert ${t}"><div class="alert-dot"></div>${msg}</div>`)
+      .join('');
+
+    // Status badge
+    const badge = document.getElementById('status-badge');
+    const hasDanger = alerts.some(a => a[0] === 'danger');
+    const hasWarn   = alerts.some(a => a[0] === 'warn');
+    badge.className = 'status-badge' + (hasDanger ? ' danger' : hasWarn ? ' warn' : '');
+    badge.textContent = hasDanger ? 'ALERT' : hasWarn ? 'WARNING' : 'NORMAL';
+  }
+
+  // ── SLIDER HANDLERS ──
+  function getVals() {
+    return [
+      +document.getElementById('sl-batt').value,
+      +document.getElementById('sl-speed').value,
+      +document.getElementById('sl-temp').value
+    ];
+  }
+
+  document.getElementById('sl-batt').oninput = function () {
+    document.getElementById('lbl-batt').textContent = this.value + '%';
+    updateDash(...getVals());
+  };
+  document.getElementById('sl-speed').oninput = function () {
+    document.getElementById('lbl-speed').textContent = this.value;
+    updateDash(...getVals());
+  };
+  document.getElementById('sl-temp').oninput = function () {
+    document.getElementById('lbl-temp').textContent = this.value + '°';
+    updateDash(...getVals());
+  };
+
+  // Initial render
+  updateDash(75, 50, 40);
+</script>
+</body>
+</html>
