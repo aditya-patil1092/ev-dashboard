@@ -136,7 +136,30 @@
     .alert.danger { background: rgba(255,69,69,.07);  color: var(--danger); border-color: rgba(255,69,69,.15); }
     .alert-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
+<<<<<<< HEAD
 
+=======
+    /* ── SIMULATOR ── */
+    .sim-section {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px; margin-bottom: 14px;
+    }
+
+    .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .sim-row:last-child { margin-bottom: 0; }
+    .sim-lbl { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; font-family: var(--mono); }
+    .sim-slider {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 3px; border-radius: 2px; outline: none; cursor: pointer;
+      background: var(--bg3);
+    }
+    .sim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 6px var(--accent); cursor: pointer;
+    }
+    .sim-val { font-size: 12px; font-family: var(--mono); color: var(--text); width: 38px; text-align: right; }
+>>>>>>> 71734fffaa6abb4e0e7868952dcd7bf34b75a01d
 
 
   </style>
@@ -233,12 +256,38 @@
     <div class="alert ok"><div class="alert-dot"></div> Voltage stable</div>
   </div>
 
+<<<<<<< HEAD
 
+=======
+  <!-- SIMULATOR (replace with fetch() in week 4) -->
+  <div class="sim-section">
+    <div class="sim-row">
+      <span class="sim-lbl">Battery %</span>
+      <input type="range" class="sim-slider" id="sl-batt" min="0" max="100" value="75">
+      <span class="sim-val" id="lbl-batt">75%</span>
+    </div>
+    <div class="sim-row">
+      <span class="sim-lbl">Speed km/h</span>
+      <input type="range" class="sim-slider" id="sl-speed" min="0" max="120" value="50">
+      <span class="sim-val" id="lbl-speed">50</span>
+    </div>
+    <div class="sim-row">
+      <span class="sim-lbl">Temp °C</span>
+      <input type="range" class="sim-slider" id="sl-temp" min="20" max="100" value="40">
+      <span class="sim-val" id="lbl-temp">40°</span>
+    </div>
+  </div>
+>>>>>>> 71734fffaa6abb4e0e7868952dcd7bf34b75a01d
 
 
 
 <script>
   // ── ARC MATH ──
+<<<<<<< HEAD
+=======
+  // Arc path length ≈ 94.2 (half circle r=30)
+  // offset = 94.2 - (pct/100 * 94.2)
+>>>>>>> 71734fffaa6abb4e0e7868952dcd7bf34b75a01d
   function setArc(id, pct) {
     const offset = 94.2 - (Math.min(Math.max(pct, 0), 100) / 100 * 94.2);
     document.getElementById(id).style.strokeDashoffset = offset;
@@ -252,6 +301,7 @@
     const s = String(seconds % 60).padStart(2, '0');
     document.getElementById('uptime-val').textContent = m + ':' + s;
     document.getElementById('uptime-bar').style.width = Math.min(seconds / 3600 * 100, 100) + '%';
+<<<<<<< HEAD
   }, 1000);
 
   // ── MAIN UPDATE FUNCTION ──
@@ -284,11 +334,55 @@
 
     if (volt > 54)      alerts.push(['warn',   'Voltage high — check cells']);
     else                alerts.push(['ok',     'Voltage stable']);
+=======
+    document.getElementById('last-update').textContent = 'last update: 0s ago';
+  }, 1000);
+
+  // ── MAIN UPDATE FUNCTION ──
+  // In Week 4, you will replace the sliders with:
+  // setInterval(() => fetch('/data').then(r => r.json()).then(d => updateDash(d.batt, d.speed, d.temp)), 2000);
+  function updateDash(batt, speed, temp) {
+    // Gauges
+    setArc('arc-batt', batt);
+    setArc('arc-speed', speed / 120 * 100);
+    setArc('arc-temp', (temp - 20) / 80 * 100);
+
+    document.getElementById('batt-num').textContent = batt;
+    document.getElementById('speed-num').textContent = speed;
+    document.getElementById('temp-num').textContent = temp;
+
+    // Derived stats
+    const volt = (44 + batt * 0.08).toFixed(1);
+    const curr = speed > 80 ? (18 + Math.random()).toFixed(1) : (10 + speed * 0.04).toFixed(1);
+    const range = Math.round(batt * 0.8);
+
+    document.getElementById('volt-val').innerHTML = volt + ' <span>V</span>';
+    document.getElementById('curr-val').innerHTML = curr + ' <span>A</span>';
+    document.getElementById('range-val').innerHTML = range + ' <span>km</span>';
+
+    document.getElementById('volt-bar').style.width = (batt * 0.8) + '%';
+    document.getElementById('curr-bar').style.width = (speed / 120 * 100) + '%';
+    document.getElementById('range-bar').style.width = batt + '%';
+
+    // Alert logic — this is the if/else you'll build on
+    const alerts = [];
+    if (batt < 20)       alerts.push(['danger', 'Battery CRITICAL — charge now!']);
+    else if (batt < 35)  alerts.push(['warn',   'Battery low']);
+    else                 alerts.push(['ok',      'Battery level normal']);
+
+    if (temp > 70)       alerts.push(['danger', 'Motor OVERHEATING']);
+    else if (temp > 55)  alerts.push(['warn',   'Motor temp elevated']);
+    else                 alerts.push(['ok',      'Motor temperature safe']);
+
+    if (parseFloat(volt) > 54) alerts.push(['warn', 'Voltage high — check cells']);
+    else                       alerts.push(['ok',   'Voltage stable']);
+>>>>>>> 71734fffaa6abb4e0e7868952dcd7bf34b75a01d
 
     document.getElementById('alerts').innerHTML = alerts
       .map(([t, msg]) => `<div class="alert ${t}"><div class="alert-dot"></div>${msg}</div>`)
       .join('');
 
+<<<<<<< HEAD
     const badge = document.getElementById('status-badge');
     const hasDanger = alerts.some(a => a[0] === 'danger');
     const hasWarn   = alerts.some(a => a[0] === 'warn');
@@ -316,3 +410,40 @@
 </script>
 </body>
 </html>
+=======
+    // Status badge
+    const badge = document.getElementById('status-badge');
+    const hasDanger = alerts.some(a => a[0] === 'danger');
+    const hasWarn   = alerts.some(a => a[0] === 'warn');
+    badge.className = 'status-badge' + (hasDanger ? ' danger' : hasWarn ? ' warn' : '');
+    badge.textContent = hasDanger ? 'ALERT' : hasWarn ? 'WARNING' : 'NORMAL';
+  }
+
+  // ── SLIDER HANDLERS ──
+  function getVals() {
+    return [
+      +document.getElementById('sl-batt').value,
+      +document.getElementById('sl-speed').value,
+      +document.getElementById('sl-temp').value
+    ];
+  }
+
+  document.getElementById('sl-batt').oninput = function () {
+    document.getElementById('lbl-batt').textContent = this.value + '%';
+    updateDash(...getVals());
+  };
+  document.getElementById('sl-speed').oninput = function () {
+    document.getElementById('lbl-speed').textContent = this.value;
+    updateDash(...getVals());
+  };
+  document.getElementById('sl-temp').oninput = function () {
+    document.getElementById('lbl-temp').textContent = this.value + '°';
+    updateDash(...getVals());
+  };
+
+  // Initial render
+  updateDash(75, 50, 40);
+</script>
+</body>
+</html>
+>>>>>>> 71734fffaa6abb4e0e7868952dcd7bf34b75a01d
